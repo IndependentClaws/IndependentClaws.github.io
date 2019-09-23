@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>Tutorial #2: Tagging Words with POS Data</title>
+	<link href="https://fonts.googleapis.com/css?family=Gayathri|Lato&display=swap" rel="stylesheet">
+	<link href="../css/prism.css" rel="stylesheet" />
+	<link rel="stylesheet" href="../css/main.css">
+
+
+</head>
+
+
+<body class="language-swift">
+
+	<h1>Lesson #2: Tagging Words with Parts of Speech</h1>
+
+	<div class="container">
+
+
+	<p>Here is our plan for designing a set of wrapper classes that abstract away the details of using the <i>NLTokenizer</i> class: </p>
+
+
+	
+	<img src="./wordposition_tagger_uml.png" alt="import statements">
+
+	<p>Before we begin, we are going to define some data models.  Each of our data models will conform to a protocol <i>Tokenizable</i>, which has a single gettable property <i>wordToken</i>, which is a <span>String</span> type.  </p>
+
+	<pre>
+		<code>
+			protocol Tokenizable:Hashable{
+    
+    var wordToken: String {get}
+}
+
+		</code>
+	</pre>
+
+	<p>We are also going to make the <i>String</i> class itself conform to the <i>Tokenizable</i> protocol.  So any <i>String</i> will simply return itself in order to conform to the protocol:</p>
+
+
+	<pre>
+		<code class="language-swift">
+
+		
+extension String: Tokenizable{
+    var wordToken: String {
+        get {
+            return self
+        }
+        set(newValue) {
+            self = newValue
+        }
+    }
+    
+    
+    
+}
+
+			
+		</code>
+	</pre>
+
+	<p>Most of the models that we define will associate words with other data relevant to the word, such as word position, part of speech, phonetic transcription, lemmas, and so forth.  We are going to define our models as structs so that they have value-type semantics, which means they won't be able to inherit from a common subclass.  Using the protocol is also beneficial because it allows us to package different kinds of word data into different structs all the while allowing them to constrain type parameters on some of the classes that we will define later.</p>
+
+	<p>The next data type that we define will be a struct named <i>TaggedWord</i>, which has <span>tag</span> property that stores the word's part of speech.</p>
+
+	<pre>
+		<code>
+			struct TaggedWord: Tokenizable, CustomStringConvertible,Hashable{
+    
+   
+    var wordToken: String{
+        return self.word
+    }
+    
+    var word: String
+    
+    var tag: NLTag
+    
+    init(word: String, tag: NLTag) {
+        self.word = word
+        self.tag = tag
+    }
+    
+    var description: String{
+        return "\(word)/\(tag.rawValue)"
+    }
+}
+			
+		</code>
+	</pre>
+
+	<p>
+		This model will also have some convenience methods that can be used for more easy filtering later on.  These methods will be used to determine whether or not the word is a specific part of speech:
+	</p>
+
+	<pre>
+		<code>
+			   func isPreposition() -> Bool{
+        return tag == .preposition
+    }
+    
+    func isDeterminer() -> Bool{
+        return tag == .determiner
+        
+    }
+    
+    func isAdverb() -> Bool{
+        return tag == .adverb
+    }
+    
+    func isAdjective() -> Bool{
+        return tag == .adjective
+    }
+    
+    
+    func isConjunction() -> Bool{
+        return tag == .conjunction
+    }
+    
+    
+    func isVerb() -> Bool{
+        return tag == .verb
+    }
+    
+    func isProperNoun() -> Bool{
+        let properNounTagSet: Set<NLTag> = [.personalName,.organizationName,.placeName]
+        return properNounTagSet.contains(self.tag)
+    }
+    
+    
+    func isNoun() -> Bool{
+        return tag == .noun
+    }
+    
+    
+    func isGeneralNoun() -> Bool{
+        return isNoun() || isProperNoun()
+    }
+    
+    
+		</code>
+	</pre>
+
+	<p>Now we are ready to start creating our <i>Tagger</i> classes.  Just as we defined a base class for our <i>Tokenizer</i> classes, so will we also define a base class <i>BaseTagger</i> that will provide core functionality and state for derived Tagger classes:</p>
+
+	<pre>
+		<code>
+			
+class BaseWordTagger{
+    
+    
+    init(sampleText: String) {
+        self.text = sampleText
+    }
+    
+    var text: String
+    
+    
+    var fullTextRange: Range<code><</code>String.Index>{
+        return text.startIndex..<code><</code>text.endIndex
+    }
+    
+    
+    private var availableTagSchemes: [NLTagScheme]{
+        
+        return [.lexicalClass,
+                .lemma,
+                .nameType,
+                .nameTypeOrLexicalClass,
+                .tokenType,
+                .language]
+    }
+    
+     var tokenUnit: NLTokenUnit{
+        return NLTokenUnit.word
+    }
+    
+    var options: NLTagger.Options{
+        return [.omitWhitespace,.omitPunctuation]
+    }
+    
+    
+    
+    lazy var tagger:NLTagger = {
+        
+        let tagger = NLTagger(tagSchemes: self.availableTagSchemes)
+        tagger.string = self.text
+        return tagger
+    }()
+    
+    
+    
+}
+		</code>
+	</pre>
+
+	<p>Just lke before, we define some computer properties that help us initialize a default tagger with the behavior we need.</p>
+
+	<p>Now let's go ahead and define a derived class <i>LCWordTagger</i>, where 'LC' stands for 'Lexical Category.'  This tagger will be responsible for assigning part of speech tags for each word in a given sample of text.</p>
+
+	<pre>
+		<code>
+			class LCWordTagger:BaseWordTagger{
+    
+    
+    
+}
+		</code>
+	</pre>
+
+	<p>Inside the class definition, we want to define some functions that will provide the basic functionality for this class.  The first will be called <i>parseWordsTaggedWithLexicalClass(withTagTypes:usingDefaultTag)</i>, which allows us to select the kind of tags that we want to use when tagging the words in our sample text.  For example, we can specify only nouns, or nouns,verbs,and adjectives.  We can also specify all the lexical categories available.  If the tagger is unable to tag a specific word, we can specify a default tag that can be used as a placeholder for words whose tags are ambiguous or indeterminate for the tagger. </p>
+
+	<pre>
+		<code>
+		/*
+     Returns an array of tagged words whose tags belong to the specified set of tag types provided
+     in the tagTypes parameter
+     */
+    func parseWordsTaggedWithLexicalClass(withTagTypes tagTypes: [NLTag], usingDefaultTag defaultTag: NLTag?) -> [TaggedWord]{
+        
+        
+        var taggedWords = [TaggedWord]()
+        
+        self.tagger.enumerateTags(in: self.fullTextRange, unit: self.tokenUnit, scheme: .lexicalClass, options:self.options){
+            tag, tokenRange in
+            
+            if let tag = tag{
+                if(tagTypes.contains(tag)){
+                        let word = String(self.text[tokenRange])
+                        taggedWords.append((TaggedWord(word: word, tag: tag)))
+                    
+                } else if let word = self.text.getSubString(fromRange: tokenRange), let defaultTag = defaultTag{
+                    taggedWords.append((TaggedWord(word: word, tag: defaultTag)))
+                }
+                
+            }
+            return true
+            
+        }
+        
+        return taggedWords
+    }
+		</code>
+	</pre>
+
+	<p>Inside the above method, we used a convenience method that we defined inside of a <i>String</i> extension, which I show below:</p>
+
+	<script src="../js/prism.js"></script>
+
+</body>
+</html>

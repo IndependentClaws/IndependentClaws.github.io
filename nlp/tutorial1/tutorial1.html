@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>Tutorial #1: Defining Custom Tokenizers</title>
+	<link rel="stylesheet" href="">
+	<link href="https://fonts.googleapis.com/css?family=Gayathri|Lato&display=swap" rel="stylesheet">
+	<link href="../css/prism.css" rel="stylesheet" />
+	<link href="../css/main.css" rel="stylesheet" />
+
+
+</head>
+
+<style>
+	#uml_class_diagram{
+		width: 100%;
+		height: auto;
+	}
+</style>
+
+<body class="language-swift">
+
+	<div class="container">
+	<h1>Lesson #1: Defining Custom Tokenizers</h1>
+
+
+	<p>Here is our plan for designing a set of wrapper classes that abstract away the details of using the <i>NLTokenizer</i> class: </p>
+
+
+	
+	<img src="./img/uml_class_diagram.png" alt="import statements" id="uml_class_diagram">
+
+
+
+	<p>Before we begin, make sure to add these <span>import</span> statements at the top of your file:</p>
+
+	<pre>
+		<code class="language-swift">
+			import Foundation
+			import NaturalLanguage
+		</code>
+	</pre>
+
+	<p>Next, we will define a base class <i>BaseTokenizer</i>, which will provide some basic functionality for the more specialized tokenizers that we define later.  We also want to abstract away some of the unpleasant details involved in working with NLTokenizer methods directly.</p>
+
+	<pre>
+		<code>
+			class BaseTokenizer{
+    
+ 
+			}
+		</code>
+	</pre>
+
+	<p>Inside the curly braces for our class definition, let's define a stored property <i>text</i>, which will store the text sample that we want to break up into different kinds of tokens, such as words, sentences, and paragraphs:</p>
+
+	<pre>
+		<code>
+			 //A stored property for the text that we want to tokenize
+    let text: String
+		</code>
+	</pre>
+
+	<p>After we define the stored property, we need an initializer:</p>
+
+	<pre>
+		<code>
+			 //The initializer for our base class takes a sample text as an argument
+    init(text: String) {
+        self.text = text
+    }
+		</code>
+	</pre>
+
+	<p>Next, let's define a computed property that will represent the range of string indices for the entire text, starting from the <i>startIndex</i> of the text (which is the index for the first character in the text) to the <i>endIndex</i>, which is the index after the last character in the text):</p>
+
+	<pre>
+		<code>
+			//Computed Helper Property -- The string.index range for the full sample text
+     var fullTextRange: Range<code><</code>String.Index<code>></code>{
+        return text.startIndex..<code><</code>text.endIndex
+    }
+		</code>
+	</pre>
+
+	<p>Let's define another computed property for the <i>NLTokenUnit</i> (i.e. word, sentence, paragraph) that will be used to configure the tokenizer that we define in our class:</p>
+
+	<pre>
+		<code>
+			 //Computed helper property -- The token unit for initializing our tokenizer will be .word by default, but we can override this later
+    var tokenUnit: NLTokenUnit{
+        return NLTokenUnit.word
+    }
+		</code>
+	</pre>
+
+	<p>The initializer for <i>NLTokenizer</i> takes an <i>NLTokenUnit</i>.  For the computer property defined above, we return an NLTokenUnit of type .word, but we can override this when we define subclasses that inherit from <i>BaseTokenizer</i> later on:</p>
+
+	<pre>
+		<code>
+			//A lazily defined tokenizer allows us to instantiate an NLTokenizer that can be initialized with the sample text that we are tokenizing and the default NLToken units
+    lazy var tokenizer: NLTokenizer = {
+        let tokenizer = NLTokenizer(unit: self.tokenUnit)
+        tokenizer.string = self.text
+        return tokenizer
+    }()
+    
+		</code>
+	</pre>
+
+
+	<p>Let's also define a typealias for a completion handler in which we pass in a single argument: an array of strings.  This completion handler is a callback that gets called when the entire array of word tokens becomes fully available after tokenization is completed:</p>
+
+	<pre>
+		<code>
+			typealias TokenCompletionHandler = ([String])->Void
+		</code>
+	</pre>
+
+	<p>The bread-and-butter of this base class will be a method that we call <i>parseTokens</i>, which takes a completion handler in which we will pass the array of word tokens that we get from the text.  This method will be wrapper for one of <i>NLTokenizer</i>'s instance methods <i>enumerateTokens(in:using:)</i></p>
+
+	<pre>
+		<code>
+			 func parseAllTokens(withCompletionHandler completion: TokenCompletionHandler){
+        
+        var tokens = [String]()
+        
+        self.tokenizer.enumerateTokens(in: self.fullTextRange, using: {
+            
+            tokenRange, _ in
+            
+            if let token = self.text.getSubString(fromRange: tokenRange){
+                tokens.append(token)
+                
+            }
+            return true
+        })
+        
+        completion(tokens)
+    }
+		</code>
+	</pre>
+
+
+	<p>Now let's look at all of the subclasses that inherit from <i>BaseTokenizer</i>:</p>
+
+	<p>Each subclass will override the computer property <i>tokenUnit</i>.  The <i>ParagraphTokenizer</i> subclass uses a value of NLTokenUnit.paragraph, while the <i>SentenceTokenizer</i> subclass useas a value of NLTokenUnit.sentence:</p>
+
+	<pre>
+		<code>
+			 override var tokenUnit: NLTokenUnit{
+        return NLTokenUnit.paragraph
+    }
+		</code>
+	</pre>
+
+	<p>Here is the <i>ParagraphTokenizer</i> subclass:</p>
+
+	<pre>
+		<code>
+			class ParagraphTokenizer:BaseTokenizer{
+    
+    override var tokenUnit: NLTokenUnit{
+        return NLTokenUnit.paragraph
+    }
+    
+    
+    func parseAllParagraphTokens() -> [String]{
+        
+        var paragraphTokens = [String]()
+        
+        parseAllTokens() {
+            paragraphs in
+            
+            paragraphTokens.append(contentsOf: paragraphs)
+        }
+        
+        return paragraphTokens
+    }
+    
+    
+    
+}
+		</code>
+	</pre>
+
+	<p>Here is the <i>SentenceTokenizer</i> subclass:</p>
+
+	<pre>
+		<code>
+
+class SentenceTokenizer:BaseTokenizer{
+    
+
+    override var tokenUnit: NLTokenUnit{
+        return NLTokenUnit.sentence
+    }
+    
+    
+    func parseAllSentenceTokens() -> [String]{
+        
+        var sentenceTokens = [String]()
+        
+        parseAllTokens(){
+            sentences in
+            
+            sentenceTokens.append(contentsOf: sentences)
+        }
+        
+        return sentenceTokens
+        
+    }
+    
+}
+			
+		</code>
+	</pre>
+
+	<p>Finally, here is the <i>WordTokenizer</i> subclass</p>
+
+	<pre>
+		<code>
+			class WordTokenizer: BaseTokenizer{
+    
+
+    override var tokenUnit: NLTokenUnit{
+        return super.tokenUnit
+    }
+    
+    
+    func parseAllWordTokens() -> [String]{
+        
+        var tokens = [String]()
+        
+        parseAllTokens() {
+            words in
+            
+            tokens.append(contentsOf: words)
+        }
+        
+        return tokens
+    }
+    
+}
+			
+		</code>
+	</pre>
+
+	<p>Each subclass calls the <i>parseTokens</i> methods that we defined in the base class.  In <i>SentenceTokenizer</i>, we define a method called <i>parseSentences</i> whose completion handler gets passed an array of sentence tokens.  In <i>ParagraphTokenizer</i>, we define a method called <i>parseParagraphs</i> whose completion handler gets passed an array of paragraph tokens.</p>
+
+
+	</div>
+	<script src="../js/prism.js"></script>
+
+</body>
+</html>

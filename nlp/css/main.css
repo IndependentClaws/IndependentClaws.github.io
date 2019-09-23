@@ -1,0 +1,110 @@
+
+
+
+	body{
+		background-color: rgb(250,250,200);
+		padding: 0.5em;
+		padding-top: 2em;
+	}
+
+	header{
+		
+	}
+
+
+
+	.container{
+		display: block;
+		clear: left;
+		margin: 0 auto;
+		width: 80%;
+		padding: 1em;
+	}
+	img{
+		display: block;
+		margin: 0 auto;
+		width: 50%;
+		height: auto;
+		border-style: solid;
+		border-width: 2px;
+		border-color: rgb(70,70,80);
+	}
+
+	#wordcloud{
+		display: inline;
+		width: 90%;
+		height: auto;
+		float: right;
+	}
+
+	h1{
+		font-size: 3em;
+		font-weight: bold;
+		margin-left: 1em;
+	}
+
+	h1,h2,h3{
+		font-family: 'Lato', sans-serif;
+	}
+
+	ol li{
+		font-size: 1em;
+		font-family: 'Lato', sans-serif;
+
+	}
+
+	ul li{
+		font-size: 1.2em;
+		font-family: 'Lato', sans-serif;
+
+	}
+
+	a{
+		font-size: 1.2em;
+		font-family: 'Lato', sans-serif;
+	}
+
+	p{
+		font-size: 2em;
+		font-color: rgb(70,70,80);
+		font-family: 'Gayathri', sans-serif;
+
+	}
+
+
+
+	
+
+	@media (min-width: 400px) {
+
+		#wordcloud-container{
+			display: block;
+			width: 100%;
+
+
+	
+		}
+
+		#intro-text-column{
+			width:100%;
+			display: block;
+		}
+			
+	}
+
+	@media (min-width: 850px) {
+
+		#intro-text-column{
+		width:50%;
+		display: inline;
+		float: right;
+		}
+
+		#wordcloud-container{
+			display: inline;
+			width: 50%;
+			float: left;
+
+		}
+			
+	}

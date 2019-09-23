@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>Tutorial #1: Tagging WordTokens with Positional Data</title>
+	<link rel="stylesheet" href="">
+	<link href="https://fonts.googleapis.com/css?family=Gayathri|Lato&display=swap" rel="stylesheet">
+</head>
+
+<style>
+
+	body{
+		background-color: rgb(250,250,200);
+		padding: 0.5em;
+	}
+
+
+
+	.container{
+		margin: 0 auto;
+		width: 90%;
+	}
+	img{
+		display: block;
+		margin: 0 auto;
+		width: 50%;
+		height: auto;
+		border-style: solid;
+		border-width: 2px;
+		border-color: rgb(70,70,80);
+	}
+
+	h1{
+		font-size: 3em;
+		font-weight: bold;
+	}
+
+	h1,h2,h3{
+		font-family: 'Lato', sans-serif;
+	}
+
+	p{
+		font-size: 2em;
+		font-color: rgb(70,70,80);
+		font-family: 'Gayathri', sans-serif;
+
+	}
+</style>
+<body>
+
+	<div class="container">
+	<h1>Lesson #3: Tagging WordTokens with Positional Data</h1>
+
+
+	<p>In addition to part of speech tags, it can also be helpful for linguistic analyses to consider word position as a linguistic feature.  Word position can further be related to part of speech data.  For example, what percentage of sentence-initial words are determiners or personal pronouns? What percentage of sentence-initial words are transitions, such as "in addition," "furthermore," etc.  We might also be interested in such questions as the average position or most frequent position of nouns or proper nouns in a given unit of text (such as a document, paragraph, or sentence).</p>
+
+	<p>Word position can be designated with simple integer indices.  It can also be normalized by diving the integer position index by the word count. It can even be further specified with coordinates that indicate positions within the larger document structure.  For example, in a 2D matrix where rows correspond to sentences and where columns represent word tokens within a given sentence, each word could be designated with a coordinate (x,y).</p>
+
+
+	<p>Here is our plan for building upon our previous classes to create a tagger that will tag words with position data:</p>
+
+	<img src="wordposition_tagger_uml.png" alt="">
+
+
+	<p>To that end, let's begin by defining a <span>struct</span> <i>WordPosition</i> that will store word position data (both normalized and absolute data).  We'll make this struct conform to the <i>Comparable</i> protocol so that words associated with position data can be ordered accordingly.</p>
+
+	<img src="word_position_struct.png" alt="">
+
+
+	<p>In order to make the struct conform to the <i>Comparable</i>protocol, we overload the '<' and '==" operators as shown below:</p>
+
+	<img src="overloaded_operators.png" alt="">
+
+
+	<p>Word positions are ordered first with respect to paragraph positions.  If paragraph positions are equal, then the structs ordered with respect to sentence positions.  If sentence positions are equal, then the structs are ordered relative to other words in the same sentence.</p>
+
+	<img src="overloaded_operators.png" alt="">
+
+
+
+	<p>Now let's define another struct <i>PositionalWord</i> that will associate word tokens with positional information.  This struct will conform to the <i>Tokenizable</i> protocol defined earlier, which will allow us to use it as an argument for classes that will calculate useful linguistic statistical information.</p>
+
+
+	<img src="positional_word.png" alt="">
+
+	<p>Now let's define another tokenizer subclass called <i>WordPositionTagger</i>.  For now, it will inherit from <i>SentenceTokenizer</i>, because the assumption is that it will be used to tag words with positions within a single paragraph.  We can refactor this later on so that it inherits from <i>ParagraphTokenizer</i> if we want to get more detail position data within the larger document.</p>
+
+
+	<img src="word_position_tagger.png" alt="">
+
+
+	<p>Here is the output that we get when we call the <i>parseAllPositionalWords</i> method on the following  
+		<a href="sample_text.html">sample text</a> </p>
+
+	<img src="output1.png" alt="">
+
+	<p>Here, I only show the output for the first 3 words in the text.  This is a little bit dense and wordy.  Let's define an extension on the <i>String</i> class, and within this <i>String</i> class extension we'll define some convenience methods that can make our programming style a little more declarative. </p>
+
+	<img src="string_extension.png" alt="">
+
+	<p>Now, let's call these methods on a string that represents the news article that I've linked to above. In the <i>viewDidLoad()</i> method of our Xcode project, let's call the <i>String</i> extension methods that we defined above:</p>
+	</div>
+
+	<img src="view_did_load.png" alt="">
+
+	<p>We should get the following ouput:</p>
+
+	<img src="output2.png" alt="">
+	
+	<p>This output is a little more readable and shows more clearly how word tokens are associated with their respective position data.</p>
+
+
+</body>
+</html>
