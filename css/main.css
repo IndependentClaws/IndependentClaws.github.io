@@ -1,0 +1,46 @@
+
+
+
+	body{
+		background-color: rgb(250,250,200);
+		padding: 0.5em;
+		padding-top: 2em;
+	}
+
+.container{
+	width: 80%;
+	margin: 0 auto;
+}
+
+	h1{
+		font-size: 3em;
+		font-weight: bold;
+		
+	}
+
+	h1,h2,h3{
+		font-family: 'Lato', sans-serif;
+	}
+
+	ol li{
+		font-size: 1em;
+		font-family: 'Lato', sans-serif;
+
+	}
+
+	ul li{
+		font-size: 1.2em;
+		font-family: 'Lato', sans-serif;
+
+	}
+
+	a{
+		font-size: 1.2em;
+		font-family: 'Lato', sans-serif;
+	}
+
+	p{
+		font-size: 2em;
+		font-family: 'Gayathri', sans-serif;
+
+	}

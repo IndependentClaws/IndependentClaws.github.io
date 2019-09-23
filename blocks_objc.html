@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>Objective-C Blocks</title>
+		<link href="https://fonts.googleapis.com/css?family=Gayathri|Lato&display=swap" rel="stylesheet">
+	<link href="css/prism.css" rel="stylesheet" />
+	<link rel="stylesheet" href="css/main.css">
+</head>
+
+<style>
+
+    
+
+    #pokercards1{
+        width:80%;
+        height:auto;
+         display: block;
+        margin: 0 auto;
+    }
+
+    #pokercards2{
+        width:80%;
+        height:auto;
+        display: block;
+        margin: 0 auto;
+    }
+
+
+</style>
+<body class="language-swift">
+	
+	<div class="container">
+	<h1>Working with <strong>Blocks</strong> in Objective-C</h1>
+	<h2>Storing Block Properties</h2>
+
+
+	<p>Anonymous functions, broadly speaking, are an important feature of any programming language, and as far as Objective-C is concerned, blocks are no exception.</p>
+
+    <p>But as fun as it is to learn about blocks, let's admit it: blocks can be kind of boring without some context, especially for those <em>block</em>-heads who just can't appreciate how great blocks are.  So, when learning about blocks, it's better to spice things up with some illustrative use cases.  And what better to make learning about blocks more fun than...card games!</p>
+
+    <figure>
+        <img src="img/poker_cards2.jpg" alt="" id="pokercards2">
+        <caption>Compliments of pdpics.com</caption>
+    </figure>
+
+	<p>Imagine that I have a class that represents a <em>Deck</em> of cards.  Below is the header file <em>Deck.h</em> for this hypothetical <em>Deck</em> class.</p>
+
+	<pre>
+		<code>
+
+			#import &lt;Foundation/Foundation.h&gt;
+#import "Card.h"
+
+NS_ASSUME_NONNULL_BEGIN
+
+@interface Deck : NSObject
+
+
+//MARK: - Initializers
+
+-(id)init;
+-(id)initWithDeck:(Deck*)otherDeck;
+-(id)initWithCards:(NSArray&lt;Card*&gt;*)cards;
+-(id)initWithRanks:(NSArray&lt;NSString*&gt;*)ranks andWithSuits: (NSArray&lt;NSString*&gt;*)suits andWithPointValues: (NSArray&lt;NSNumber *&gt;*)pointValues;
+
+
+-(Card*)deal;
+-(void)shuffle;
+
+-(unsigned long)size;
+-(BOOL)isEmpty;
+-(BOOL)isEqual:(Deck*)otherDeck;
+
++(NSArray&lt;Card*&gt;*)performPerfectShuffle:(NSArray&lt;Card*&gt;*)cards;
++(NSArray&lt;Card*&gt;*)performEfficentInsertionShuffle:(NSArray&lt;Card*>*)cards;
+
+@end
+
+NS_ASSUME_NONNULL_END
+
+			
+		</code>
+	</pre>
+
+	<p>The <em>Deck</em> is a wrapper for an array of <em>Card</em> objects.  The <em>Card</em> object basically stores information about a hypothetical playing card, such as suit(i.e. hearts,clubs,etc.), rank(king,queen,etc.), and point value.  It could also include other methods, such as one that provides a string description for a given card, another that allows you to test for equality between two given cards, and more.  The main thing is: our <em>Deck</em> class stores an array of <em>Card</em> objects and provides some handy methods that provide the functionality common to many card games, such as <em>deal()</em> and <em>shuffle()</em>.</p>
+
+    <p>The primary initializer for this <em>Deck</em> class takes three parameters: (1) an array of strings representing all of the <em>ranks</em> possible for this set of cards (i.e. jacks, queens, kings), (2) an array of strings representing all of the <em>suits</em> possible for this set of cards, and finally (3) an array of <em>NSNumber</em> objects containing the point values for all of the ranks in the set of cards. During initialization, an array of cards is created for every combination of ranks and suits possible based on the arguments passed into the initializer for the ranks and suits parameters.  <em>(A precondition for initialization here is that the size of the ranks array and that of the point value array are equal)</em></p>
+
+	<p>In addition to creating this set of cards that gets stored in the instantiated <em>Deck</em> object, the created cards are shuffled - that is, the order of cards within the deck gets randomized based on a particular shuffling algorithm.</p>
+
+	<p>The question now arises: how can we check two given decks of cards for equality?  Maybe you wouldn't have to.  But let's say you did.</p> 
+
+    <img src="img/poker_cards1.png" alt="" id="pokercards1">
+
+    <p>We could use a brute force approach where we check that each card present in one deck is also present in another deck, making sure that the same number of cards are present in both decks - but this could be time-consuming.  For a given deck, we could also store a copy of the card array that gets created prior to shuffling it - but this would requiring allocating extra memory just so we can compare <em>Deck</em> objects later one.</p>
+
+	<p>How about instead storing a copy of the block of code that is responsible for generating the card set, excluding the shuffling operation.  This way, we can regenerate the original set of cards (that is, prior to shuffling the deck) locally within the body of a comparison method such as <em>isEqual</em>.  When our comparison of both decks is completed, these locally generated card arrays would then get deallocated.</p>
+
+	<p>With this in mind, we will define a <em>block</em> property in an extension to our <em>Deck</em> class, as show below.  I've included the entire <em>Deck</em> extension for context:</p>
+
+	<pre>
+		<code>
+			
+@interface Deck ()
+
+@property (strong,atomic)NSMutableArray&lt;Card*&gt;*cards;
+@property (readonly) unsigned long size;
+@property (readonly) BOOL isEmpty;
+@property (readwrite) unsigned long topCardIndex;
+
+@property (copy) NSMutableArray&lt;Card*&gt;*(^generator)(void);
+
+
+		</code>
+	</pre>
+
+	<p>Whenever we define a <em>block</em> property in an Objective-C class, it is considered good practice to use the <em>copy</em> attribute, which basically means the captured state internal to the block will be copied and stored in our property.</p>
+
+	<p>With that out of the way, here is an example of a newly-refactored initializer that stores the <em>process</em> for generating an initial set of cards in the <em>generator</em> property defined above:</p>
+
+	<pre>
+		<code>
+
+			//pointValues array must have same length as ranks array
+-(id)initWithRanks:(NSArray<NSString*>*)ranks andWithSuits: (NSArray<NSString*>*)suits andWithPointValues: (NSArray<NSNumber *>*)pointValues{
+    
+    self = [super init];
+    
+    if(self){
+        
+        _generator = ^{
+            
+            NSMutableArray<Card*>* cards = [[NSMutableArray alloc] init];
+            
+            for(int i = 0; i < [ranks count]; i++){
+                for(int j = 0; j < [suits count]; j++){
+                
+                Card* card = [[Card alloc] initWithRank:[ranks objectAtIndex:i] andWithSuit:[suits objectAtIndex:j] andWithPointValue:[pointValues objectAtIndex:i]];
+                
+                    [cards addObject:card];
+                }
+            }
+            
+            return cards;
+        };
+        
+        _cards = _generator();
+        
+        [self shuffle];
+        _topCardIndex = [_cards count] - 1;
+    }
+    
+    return self;
+}
+			
+		</code>
+	</pre>
+
+	<p>Notice that, in the code above, we are careful to call the <em>shuffle</em> function <u>after</u> we have stored the card array-generating code in our block.  Otherwise, we wouldn't be able to perform standardized and consistent comparisons for various decks of cards.</p>
+
+	<p>Each time we initialize a deck, the code responsible for generating the array of cards will be assigned to the <em>_generator</em> variable (i.e. our block property).  For example, we might have another initializer that initializes a new deck of cards with an array of card objects:</p>
+
+	<pre>
+		<code>
+			-(id)initWithCards:(NSArray<Card*>*)cards{
+    
+    self = [super init];
+    
+    if(self){
+        
+        _generator = ^{
+            return [NSMutableArray arrayWithArray:cards];
+        };
+        
+        _cards = _generator();
+        
+        [self shuffle];
+    }
+    
+    return self;
+}
+			
+		</code>
+	</pre>
+
+	<p>We might also have a default initializer that uses a standard set of suits, ranks, and point values to generate an array of cards:</p>
+
+	<pre>
+		<code>
+			
+-(id)init{
+    
+    self = [super init];
+    
+    if(self){
+        
+
+        _generator = ^{
+            
+            
+            int pointValue = 1;
+            NSMutableArray<Card*>*cards = [[NSMutableArray alloc] init];
+            
+            for(NSString* rank in [Deck GetDefaultRanks]){
+                for(NSString* suit in [Deck GetDefaultSuits]){
+                    
+                    Card* newCard = [[Card alloc] initWithRank:rank andWithSuit:suit andWithPointValue:[NSNumber numberWithInt:pointValue]];
+                    [cards addObject:newCard];
+                    
+                }
+                pointValue += 1;
+
+            }
+            
+            return cards;
+        };
+        
+        _cards = _generator();
+        
+        [self shuffle];
+        
+        _topCardIndex = [_cards count] - 1;
+
+    }
+    
+    return self;
+}
+		</code>
+	</pre>
+
+	<p>Finally, we could also have an initialzer that takes another deck of cards as a parameter, using it to instantiate a new <em>Deck</em> object, much the same way we would use a <em>copy</em> function.</p>
+
+	<pre>
+		<code>
+			
+-(id)initWithDeck:(Deck*)otherDeck{
+    
+    self = [super init];
+    
+    if(self){
+        
+        _generator = ^{
+            return otherDeck.cards;
+        };
+        
+        _cards = _generator();
+        
+        [self shuffle];
+    }
+    
+    return self;
+}
+		</code>
+	</pre>
+
+	<p>All of the trouble of storing the card-generating code in a <em>_generator</em> block property only bears fruit when we are able to implement a method that tests for equality between two <em>Deck</em> objects.  Below is an example of such a method:</p>
+
+	<pre>
+		<code>
+			-(BOOL)isEqual:(Deck*)otherDeck{
+    
+    NSMutableArray<Card*>* currentDeckCards = self.generator();
+    NSMutableArray<Card*>* otherDeckCards = otherDeck.generator();
+    
+    if(currentDeckCards.count != otherDeckCards.count){
+        return NO;
+    }
+    
+    for(int i = 0; i < currentDeckCards.count; i++){
+        Card* currentDeckCard = [currentDeckCards objectAtIndex:i];
+        Card* otherDeckCard = [otherDeckCards objectAtIndex:i];
+        
+        if(![currentDeckCard isEqual:otherDeckCard]){
+            return NO;
+        }
+    }
+    
+    return YES;
+    
+}
+			
+		</code>
+	</pre>
+
+	<p>It's evident from the code above that we need to call our <em>generator</em> block in order to temporarily regenerate the array of cards that we obtained prior to calling the <em>shuffle</em> method during initializaiton for each of our <em>Deck</em> objects.</p>
+
+	<p>Let's test our code.  In our <em>viewDidLoad()</em> method of our ViewController class, let's add the following code:</p>
+
+	<pre>
+		<code>
+			
+    Deck* deck1 = [[Deck alloc] init];
+    Deck* deck2 = [[Deck alloc] init];
+    
+    Deck* deck3 = [[Deck alloc] initWithRanks:@[@"K",@"Q",@"J"] andWithSuits:@[@"red",@"blue"] andWithPointValues:@[
+        [NSNumber numberWithInt:10],
+        [NSNumber numberWithInt:20],
+        [NSNumber numberWithInt:30]
+                                                                        
+        ]];
+    
+    Deck* deck4 = [[Deck alloc] initWithRanks:@[@"K",@"Q",@"J"] andWithSuits:@[@"red",@"blue"] andWithPointValues:@[
+        [NSNumber numberWithInt:10],
+        [NSNumber numberWithInt:20],
+        [NSNumber numberWithInt:30]
+        ]];
+    
+    
+    Deck* deck5 = [[Deck alloc] initWithRanks:@[@"K",@"Q",@"J"] andWithSuits:@[@"red",@"blue",@"green"] andWithPointValues:@[
+        [NSNumber numberWithInt:10],
+        [NSNumber numberWithInt:20],
+        [NSNumber numberWithInt:30]
+        ]];
+
+    NSLog(@"deck1 equals deck2 TRUE: %@",[deck1 isEqual:deck2] ? @"true":@"false");
+    NSLog(@"deck1 equals deck3 FALSE: %@",[deck1 isEqual:deck3] ? @"true":@"false");
+    NSLog(@"deck3 equals deck4 TRUE: %@",[deck3 isEqual:deck4] ? @"true":@"false");
+    NSLog(@"deck4 equals deck5 FALSE: %@",[deck4 isEqual:deck5] ? @"true":@"false");
+    
+
+		</code>
+	</pre>
+
+	<p>The output we get from executing the code above should be as follows:</p>
+
+
+	<pre>
+		<code>
+			2019-09-23 04:43:10.402083-0400 Solitaire[6149:85494] deck1 equals deck2 TRUE: true
+2019-09-23 04:43:10.402320-0400 Solitaire[6149:85494] deck1 equals deck3 FALSE: false
+2019-09-23 04:43:10.402459-0400 Solitaire[6149:85494] deck3 equals deck4 TRUE: true
+2019-09-23 04:43:10.402621-0400 Solitaire[6149:85494] deck4 equals deck5 FALSE: false
+		</code>
+	</pre>
+
+	<p>This is basically an <em>ad hoc</em> way of confirming that our <em>isEqual(:otherDeck)</em> method works as functions.</p>
+
+	<p>In short, the utility of using blocks (in the case of Objective-C) and closures (in the case of Swift) cannot be underemphasized.  So learn to embrace blocks and make them part of your regular programming practice.</p>
+	</div>
+
+	<script src="js/prism.js"></script>
+
+</body>
+</html>
