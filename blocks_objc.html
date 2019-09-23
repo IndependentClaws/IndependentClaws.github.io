@@ -11,7 +11,11 @@
 
 <style>
 
-    
+    body{
+        background-color: #78BF8A;
+        color: #FFF;
+        padding: 1em;
+    }
 
     #pokercards1{
         width:80%;
@@ -21,11 +25,56 @@
     }
 
     #pokercards2{
+        border-radius: 5%;
+        border: 10px solid #733D40;
         width:80%;
         height:auto;
         display: block;
        
     }
+
+    figure{
+        font-style: italic;
+    }
+
+    h1,h2{
+        color: #733D40;
+    }
+
+    a{
+        text-decoration: none;
+        color: #A347A6;
+    }
+
+    footer{
+        padding: 1em;
+        margin-top: 1em;
+    }
+
+    footer ul{
+        list-style: none;
+        float: right;
+
+    }
+    footer a{
+        font-size: 1em;
+        color: white;
+    }
+
+    footer a:hover{
+        text-shadow: 2px 2px #733D40;
+    }
+
+    footer li{
+            border-radius: 5%;
+            padding: 10px;
+            background-color: #BF945C;
+            display: inline-block;
+            margin-bottom: 1.2em;
+            margin-right: 20px;
+            color: white;
+    }
+   
 
 
 </style>
@@ -42,7 +91,7 @@
 
     <figure>
         <img src="img/poker_cards2.jpg" alt="" id="pokercards2">
-        <caption>Compliments of pdpics.com</caption>
+        <caption>Compliments of <a href="https://www.pdpics.com">pdpics.com</a></caption>
     </figure>
 
 	<p>Imagine that I have a class that represents a <em>Deck</em> of cards.  Below is the header file <em>Deck.h</em> for this hypothetical <em>Deck</em> class.</p>
@@ -94,7 +143,7 @@ NS_ASSUME_NONNULL_END
 
     <img src="img/poker_cards1.png" alt="" id="pokercards1">
 
-    <p>We could use a brute force approach where we check that each card present in one deck is also present in another deck, making sure that the same number of cards are present in both decks - but this could be time-consuming.  For a given deck, we could also store a copy of the card array that gets created prior to shuffling it - but this would requiring allocating extra memory just so we can compare <em>Deck</em> objects later one.</p>
+    <p>We could use a brute force approach where we check that each card present in one deck is also present in another deck, making sure that the same number of cards are present in both decks - but this could be time-consuming.  For a given deck, we could also store a copy of the card array that gets created prior to shuffling it - but this would requiring allocating extra memory just so we can compare <em>Deck</em> objects later on.</p>
 
 	<p>How about instead storing a copy of the block of code that is responsible for generating the card set, excluding the shuffling operation.  This way, we can regenerate the original set of cards (that is, prior to shuffling the deck) locally within the body of a comparison method such as <em>isEqual</em>.  When our comparison of both decks is completed, these locally generated card arrays would then get deallocated.</p>
 
@@ -339,6 +388,24 @@ NS_ASSUME_NONNULL_END
 
 	<p>In short, the utility of using blocks (in the case of Objective-C) and closures (in the case of Swift) cannot be underemphasized.  So learn to embrace blocks and make them part of your regular programming practice.</p>
 	</div>
+
+
+    <hr>
+
+    <footer>
+
+        <ul>
+            <li> <a href="https://independentclaws.github.io">Independent Claws Home</a></li>
+            <li> <a href="mailto:independentclaws.nlp@gmail.com">independentclaws.nlp@gmail.com</a></li>
+            <li> <a href="https://www.youtube.com/channel/UChBeYLis-0-Ic8NWtdUdrdw">Programming Tutorials</a></li>
+        </ul>
+       
+        
+    </footer>
+    
+  
+    
+
 
 	<script src="js/prism.js"></script>
 
