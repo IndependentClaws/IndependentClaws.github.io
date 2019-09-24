@@ -1,0 +1,79 @@
+
+
+@media(max-width: 700px){
+	
+}
+
+#first{
+	clear: left;
+}
+
+
+
+.photo{
+	display: inline-block;
+	position: relative;
+	margin-top: 1em;
+	margin-right: 1em;
+	width: 15em;
+	height: 10em;
+	border: 2px solid dodgerblue;
+	border-radius: 5%;
+}
+
+.photo img{
+	position: absolute;
+	height: auto;
+	width: 100%;
+	overflow-y: hidden;
+}
+
+.photo-overlay{
+	position: absolute;
+	opacity: 0;
+	transition-property: opacity;
+	transition-duration: 1s;
+	padding-left: 2em;
+}
+
+.photo-overlay p,h2{
+	color: dodgerblue;
+	text-shadow: 2px 2px white;
+}
+
+.photo-overlay:hover{
+	opacity: 1;
+}
+
+
+ul{
+	list-style: none;
+	font-family: 'Baskerville';
+}
+
+ul li{
+	float: left;
+	display: inline-block;
+	background-color: dodgerblue;
+	padding: 10px;
+	border-radius: 5%;
+	margin-right: 20px;
+	margin-bottom: 10px;
+	line-height: 1.5em;
+	color: white;
+	transition-duration: 2s;
+	transition-property: margin-right,background-color, transform;
+
+}
+
+ul li:hover{
+	background-color: tomato;
+	border-radius: 10%;
+	transform: rotateZ(180deg);
+}
+
+ul li:active{
+	background-color: rgb(250,10,10);
+	transform: rotateZ(360deg);
+
+}

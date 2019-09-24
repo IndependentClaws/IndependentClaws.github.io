@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>Objective-C Blocks: Avoid Strong Reference Cycle and Using the __block Keyword</title>
+		<link href="https://fonts.googleapis.com/css?family=Gayathri|Lato&display=swap" rel="stylesheet">
+	<link href="css/prism.css" rel="stylesheet" />
+	<link rel="stylesheet" href="css/main.css">
+</head>
+
+<style>
+
+    body{
+        background-color: #78BF8A;
+        color: #FFF;
+        padding: 1em;
+    }
+
+    #pokercards1{
+        width:80%;
+        height:auto;
+         display: block;
+        
+    }
+
+    #pokercards2{
+        border-radius: 5%;
+        border: 10px solid #733D40;
+        width:80%;
+        height:auto;
+        display: block;
+       
+    }
+
+    figure{
+        font-style: italic;
+    }
+
+    h1,h2{
+        color: #733D40;
+    }
+
+    a{
+        text-decoration: none;
+        color: #A347A6;
+        font-size: 0.8em;
+    }
+
+    .objc-keyword{
+        color:tomato;
+    }
+
+    footer{
+        padding: 1em;
+        margin-top: 1em;
+    }
+
+    footer ul{
+        list-style: none;
+        float: right;
+
+    }
+    footer a{
+        font-size: 1em;
+        color: white;
+    }
+
+    footer a:hover{
+        text-shadow: 2px 2px #733D40;
+    }
+
+    footer li{
+            border-radius: 5%;
+            padding: 10px;
+            background-color: #BF945C;
+            display: inline-block;
+            margin-bottom: 1.2em;
+            margin-right: 20px;
+            color: white;
+    }
+   
+
+
+</style>
+<body class="language-swift">
+	
+	<div class="container">
+	   <h1>Working with <strong>Blocks</strong> in Objective-C</h1>
+	   <h2>Avoiding Strong Reference Cycles with the <em class="objc-keyword">__weak</em> keyword and Using the <em class="objc-keyword">__block</em> keyword</h2>
+
+        <figure>
+        <img src="img/code.jpg" alt="" id="pokercards2">
+        <caption>Compliments of <a href="https://www.dreamstime.com">dreamstime.com</a></caption>
+        </figure>
+
+       <p>When using blocks in Objective-C, there is a real risk of creating a <em>strong reference cycle</em>.  This happens when your block captures a reference to <em>self</em>.  In other words, if you are creating a block inside a class and if inside that block you need to access a method or property belonging to said class, then you have to capture a reference to the class in which the block is being created. It sounds more confusing when trying to explain it, so let's illustrate this using an example from  linguistics and hopefully things will become more clear.</p>
+
+        <p>Let's create a new Cocoa class that inherits from <em>NSObject</em>. We'll call this class <em>Tokenizer</em> because it will be responsible for breaking up a text into its individual words.  "Tokenization" refers to this process where a string is broken up into words. Here is the <em>Tokenizer.h</em> header file:</p>
+
+       <pre>
+           <code>
+
+@interface Tokenizer : NSObject
+
+@property (atomic,strong) NSString* text;
+
+@end
+
+               
+           </code>
+       </pre>
+
+    <p>There is only one property exposed in the header file, and that is the text that we want to tokenize.  Now we'll go ahead and define an initializer inside the <em>Tokenizer.m</em> implementation file.</p>
+
+    <pre>
+        <code>
+            @implementation Tokenizer
+
+-(id)initWithText:(NSString*)text{
+
+    self = [super init];
+    
+    if(self){
+        _text = text;
+    }
+    
+    return self;
+}
+
+@end
+        </code>
+    </pre>
+
+    <p>This initializer is pretty self-explanatory.  It simply accepts a string argument and uses that string to initialize the text property.</p>
+
+    <p>Before we go any further, we'll define two <em>readonly</em> properties in an extension to the <em>Tokenizer</em> class, as shown below:</p>
+
+    <pre>
+        <code>
+            @interface Tokenizer ()
+
+@property (readonly)NLTokenizer* tokenizer;
+@property (readonly)NSRange textRange;
+
+@end
+        </code>
+    </pre>
+
+    <p>Basically, the <em>textRange</em> property is defined for convenience and represents the range of the entire text that will be tokenized.  The <em>tokenizer</em> property is an instance of <em>NLTokenizer</em>, which is provided by Apple's <em>NaturalLanguage</em> framework.  Here's how these two properties are going to be implemented:</p>
+
+    <pre>
+        <code>
+
+-(NLTokenizer *)tokenizer{
+    NLTokenizer* tokenizer = [[NLTokenizer alloc] initWithUnit:NLTokenUnitWord];
+    [tokenizer setString:_text];
+    return tokenizer;
+}
+
+-(NSRange)textRange{
+    return NSMakeRange(0, [_text length]);
+}
+            
+        </code>
+    </pre>
+
+    <p>Basically, in the case of the tokenizer object, we initialize a tokenizer with <em>NLTokenUnitWord</em>, since we plan to break up the text into words, and we set the string property of the tokenizer to the text that we plan to tokenize.  Likewise, <em>textRange</em> simply provides a range from the beginning location to the ending location of the text in question.</p>
+
+    <p>Now let's implement a <em>tokenize</em> function, whose job it will be to tokenize said text and return an array of strings representing all of the words in the text:</p>
+
+    <pre>
+        <code>
+            -(NSArray&lt;NSString*&gt;*)tokenize{
+    
+    Tokenizer* __weak weakSelf = self;
+    
+    NSMutableArray&lt;NSString*&gt;* tokensArray = [[NSMutableArray alloc] init];
+    
+    [self.tokenizer enumerateTokensInRange:self.textRange usingBlock:^(NSRange tokenRange, NLTokenizerAttributes flags, BOOL * _Nonnull stop) {
+        
+        NSString* token = [weakSelf.text substringWithRange:tokenRange];
+        [tokensArray addObject:token];
+    }];
+    
+    return tokensArray;
+}
+        </code>
+    </pre>
+
+    <p>The main thing to notice in this code snippet is where we define <em>weakSelf</em>:</p>
+
+
+    <pre>
+        <code>
+                Tokenizer* __weak weakSelf = self;
+
+        </code>
+    </pre>
+
+    <p>What's the point of this? By declaring a "weakly"-defined reference to self, we allow for the block in the <em>enumerateTokens</em> method to capture a weak reference to the current <em>Tokenizer</em> class, which happens to have a reference to the text that we wish to tokenize and which we therefore need to access from within the scope of the block.</p>
+
+    <p>What if inside the block we instead had the following code?</p>
+
+    <pre>
+        <code>
+             NSString* token = [self.text substringWithRange:tokenRange];
+        [tokensArray addObject:token];
+        </code>
+    </pre>
+
+    <p>If we used <em>self.text</em>, then would be creating a strong reference cycle.   This means that the block itself would have a strong reference to the <em>text</em> property at the same time that the <em>Tokenizer</em> class has a reference to the block via the <em>tokenize</em> method in which the block is defined.  This could cause a memory leak if, when an instance of our <em>Tokenizer</em> object should've been deallocated, the compiler instead didn't deallocate it because of the reference to "self" maintained by the block.</p>
+
+    <p>Before we go further, let's refactor the Tokenizer.h header file so that exposes the constructor as well as the <em>tokenize()</em> method that we just defined:</p>
+
+    <pre>
+        <code>
+            #import &lt;Foundation/Foundation.h&gt;
+#import &lt;NaturalLanguage/NaturalLanguage.h&gt;
+
+NS_ASSUME_NONNULL_BEGIN
+
+@interface Tokenizer : NSObject
+
+@property (atomic,strong) NSString* text;
+-(id)initWithText:(NSString*)text;
+-(NLTokenizer*)tokenizer;
+-(NSArray&lt;NSString*&gt;*)tokenize;
+-(NSInteger)averageWordCount;
+@end
+
+NS_ASSUME_NONNULL_END
+        </code>
+    </pre>
+
+    <p>Make sure that the NaturalLangauge framework gets imported at the top of the file with the appropriate import statement:</p>
+
+    <pre>
+        <code>
+            #import &lt;NaturalLanguage/NaturalLanguage.h&gt;
+        </code>
+    </pre>
+
+    <p>We've implemented a <em>tokenize()</em> method in our <em>Tokenizer</em> class.  We will shortly test it out and make sure everything is in working order.  However, before we do that, let's continue to extend the functionality of our <em>Tokenizer</em> class and in the process gain some more insights into the magic behind blocks.</p>
+
+    <hr>
+
+    <p>We have a good working understanding of how and when to use the <em>__weak</em> keyword when capturing a reference to self inside a block.  Let's add another method to our <em>Tokenizer</em> class called <em>-(NSInteger)averageWordCount</em>, which will return an <em>NSInteger</em> that represents the average word count for a sample text. We will also go back to the Tokenizer.h header file and add the method signature for this method in the header file.</p>
+
+    <pre>
+        <code>
+@interface Tokenizer : NSObject
+
+@property (atomic,strong) NSString* text;
+-(id)initWithText:(NSString*)text;
+-(NLTokenizer*)tokenizer;
+-(NSArray&lt;NSString*&gt;*)tokenize;
+-(NSInteger)averageWordCount;
+@end
+
+        </code>
+    </pre>
+
+    <p>Back in the Tokenizer.m implementation file, here is how we go about implementing this method:</p>
+
+    <pre>
+        <code>
+            -(NSInteger)averageWordCount{
+    
+    NSArray&lt;NSString*&gt;* tokens = [self tokenize];
+    
+    __block int sum = 0;
+    
+    [tokens enumerateObjectsUsingBlock:^(NSString * _Nonnull token, NSUInteger idx, BOOL * _Nonnull stop) {
+        
+        sum += [token length];
+        
+    }];
+    
+    return (int)(sum/tokens.count);
+}
+        </code>
+    </pre>
+
+    <p>There are two interesting things to notice in this code snippet.  First, the <em>__block</em> keyword.  This allows for the cod both inside the block and that of the surrounding code to share state with regard to the <em>int</em> variable sum.  That is, using the <em>__block</em> keyword when declaring a variable allows for the data in the variable to be modified within a block.  The <em>sum</em> variable in this case is used to add up the lengths of all the words in the tokens array.</p>
+
+    <p>The other interesting thing to notice is the method <em>enumerateObjectsUsingBlock</em>, which can be called on any array in Objective-C and which allows us to perform operations on each individual element in the array on which this method is called. This method can be used to implement the map, filter, and reduce operations available in Swift.</p>
+
+    <p>We are ready to test our <em>Tokenizer</em> class, specifically the <em>tokenize()</em> and <em>averageWordCount</em> methods that we just implemented.  In order to do that, we'll need some sample text. I'll be using text from news articles, which I've defined as static readonly properties on a <em>MockData</em> class. You can also check out this sample data <a href="sample_data.html">here</a>.</p>
+
+    <p>Finally, if you are defining this <em>Tokenizer</em> class within an XCode project, go back into the <em>ViewController.m</em> file and in the <em>viewDidLoad()</em> method try out the following code to test out the <em>Tokenizer</em> class that we've just defined:</p>
+
+    <pre>
+        <code>
+
+    - (void)viewDidLoad {
+    [super viewDidLoad];
+    // Do any additional setup after loading the view.
+    
+    
+    NSString* text1 = [MockData article1];
+    
+    Tokenizer* tokenizer = [[Tokenizer alloc] initWithText:text1];
+    
+    NSArray&lt;NSString*&gt;* tokens = [tokenizer tokenize];
+    
+    NSLog(@"Here are all the word tokens in article1: \n");
+    
+    [tokens enumerateObjectsUsingBlock:^(NSString * _Nonnull string, NSUInteger idx, BOOL * _Nonnull stop) {
+        
+        NSLog(string);
+        
+    }];
+    
+    NSLog(@"\n");
+    
+    NSInteger averageWordCount = [tokenizer averageWordCount];
+    
+    NSLog(@"The average word count is: %d",averageWordCount);
+} 
+        </code>
+    </pre>
+
+    <p>Now go ahead and run the program.  You should be able to see the following output in the console: </p>
+
+    <pre>
+        <code>
+            2019-09-24 00:58:43.012730-0400 RegexParserDemo[2346:75464] Here are all the word tokens in article1:
+2019-09-24 00:58:43.012978-0400 RegexParserDemo[2346:75464] As
+2019-09-24 00:58:43.013224-0400 RegexParserDemo[2346:75464] Dorian
+2019-09-24 00:58:43.013554-0400 RegexParserDemo[2346:75464] makes
+2019-09-24 00:58:43.013641-0400 RegexParserDemo[2346:75464] its
+.
+.
+.
+2019-09-24 00:58:43.091109-0400 RegexParserDemo[2346:75464] The average word count is: 4
+        </code>
+    </pre>
+
+    <p>The beauty and brilliance of blocks never ceases to amaze!</p>
+
+</div>
+
+    <hr>
+
+    <footer>
+
+        <ul>
+            <li> <a href="https://independentclaws.github.io">Independent Claws Home</a></li>
+            <li> <a href="mailto:independentclaws.nlp@gmail.com">independentclaws.nlp@gmail.com</a></li>
+            <li> <a href="https://www.youtube.com/channel/UChBeYLis-0-Ic8NWtdUdrdw">Programming Tutorials</a></li>
+        </ul>
+       
+        
+    </footer>
+    
+  
+    
+
+
+	<script src="js/prism.js"></script>
+
+</body>
+</html>
